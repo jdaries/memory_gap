@@ -4,26 +4,25 @@ import argparse
 import csv
 import random
 
+import yaml
+from yaml import CLoader as Loader
 from escpos import config
 
-LOGO = "logos/Memory-Gap-B-print.jpg"
-HEAD = "mg_receipt_header.txt"
-WIDTH = 42
-MALLS = "malls.csv"
-PHOTO_DIR = "./mall_photos"
-STORY_DIR = "/mall_stories"
+config_file = "config.yaml"
 
 c = config.Config()
 p = c.printer()
 
+configs = yaml.load(open(config_file,"r"), Loader)
+
 if __name__ == '__main__':
-    reader = csv.DictReader(open(MALLS,"r"))
+    reader = csv.DictReader(open(configs['MALLS'],"r"))
     mall_db = list()
     for row in reader:
         mall_db.append(row)
     mall = random.choice(mall_db)
-    head_text = open(HEAD,"r").read()
-    p.image(LOGO)
+    head_text = open(configs['HEAD'],"r").read()
+    p.image(config['LOGO'])
     p.set(align="center")
     p.text(head_text)
     p.text("="*WIDTH)

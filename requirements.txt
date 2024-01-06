@@ -15,7 +15,6 @@ olefile==0.47
 openpyxl==3.1.2
 parsedatetime==2.6
 Pillow==9.5.0
-pkg-resources==0.0.0
 pypng==0.20220715.0
 pyserial==3.5
 python-escpos==2.2.0
