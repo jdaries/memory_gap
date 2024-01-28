@@ -22,10 +22,27 @@ parser.add_argument('-i','--index', type=int,
                     help="row number (zero-indexed starting from first row of data) of the malls.csv file to use, overrides the randomness")
 parser.add_argument('-b', '--barcode', action="store_true",
                     help="if set, waits for a barcode input before printing a receipt")
+parser.add_argument('-r', '--random', action="store_true",
+                    help="if set, prints a random barcode each time a barcode is scanned")
+parser.add_argument('-k', '--keys', action="store_true",
+                     help="if set, prints the photos, titles, and barcodes of all malls in database")
 
+DEVICE = CONFIGS['DEVICE']
+
+def print_key(mdb):
+    for mall in mdb:
+        p.image("{}/{}".format(CONFIGS['PHOTO_DIR'],mall['photo']))
+        p.text("\n")
+        p.text("+"*CONFIGS['WIDTH'])
+        p.text("\n")
+        p.set(align="center", text_type="b", height=2)
+        p.text(mall['title'])
+        p.text("\n")
+        p.barcode("{}{}".format("{B",mall['code']), "CODE128", function_type="B")
+        p.cut()
 
 def read_barcode():
-    device = InputDevice("/dev/input/event3")
+    device = InputDevice(DEVICE)
     code = ""
     for event in device.read_loop():
         if event.type == ecodes.EV_KEY:
@@ -62,21 +79,26 @@ def print_receipt(mall_db, index=None, barcode=None):
     p.text("\n")
     p.text("BIRTH:{:>36}\n".format(mall['birth']))
     p.text("DEATH:{:>36}\n".format(mall['death']))
-    p.text("ANCHORS:\n")
+    p.text("ABOUT THE MALL:\n")
     p.text(mall['anchors'])
     p.text("\n")
-    p.text("~"*CONFIGS['WIDTH'])
-    p.text("MALL MEMORY:\n")
+    p.text("="*CONFIGS['WIDTH'])
+    p.text("\n")
+    p.set(align="center", text_type="b")
+    p.text(mall['title'])
+    p.text("\n")
+    p.set(text_type="normal")
+    p.text("="*CONFIGS['WIDTH'])
+    p.text("\n")
     p.text(mall['memory'])
     p.text("\n")
     p.set(align="right")
     p.text("-{}\n".format(mall['memory_author']))
     p.text("="*CONFIGS['WIDTH'])
     p.text("\n")
-    p.set(align="center")
-    p.set(align="center")
+    p.set(align="center", font="b")
     p.text(open(CONFIGS['FOOT'],"r").read())
-    p.qr(CONFIGS['QRLINK'],size=10)
+    p.qr(CONFIGS['QRLINK'],size=5)
     p.text("\n")
     p.set(text_type="normal")
     p.cut()
@@ -84,13 +106,20 @@ def print_receipt(mall_db, index=None, barcode=None):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    reader = csv.DictReader(open(CONFIGS['MALLS'],"r"))
+    reader = csv.DictReader(open(CONFIGS['MALLS'],"r", encoding="latin-1"))
     mdb = list()
+    mall_mapping = dict()
+    i = 0
     for row in reader:
         mdb.append(row)
+        mall_mapping[row['code']] = i
+        i += 1
     if args.barcode:
         while True:
             bc = read_barcode()
-            print_receipt(mdb, barcode=bc)
+            ix = mall_mapping.get(bc) if not args.random else None
+            print_receipt(mdb, barcode=bc, index=ix)
+    elif args.keys:
+        print_key(mdb)
     else:
         print_receipt(mdb, index=args.index)
