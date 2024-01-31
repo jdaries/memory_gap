@@ -26,6 +26,8 @@ parser.add_argument('-r', '--random', action="store_true",
                     help="if set, prints a random barcode each time a barcode is scanned")
 parser.add_argument('-k', '--keys', action="store_true",
                      help="if set, prints the photos, titles, and barcodes of all malls in database")
+parser.add_argument('-a', '--all', action="store_true",
+                    help="prints all receipts in database and exits")
 
 DEVICE = CONFIGS['DEVICE']
 
@@ -53,7 +55,33 @@ def read_barcode():
                 return code
             code += event.keycode.split("_")[-1]
 
+def long_print(text):
+    memory_grafs = text.split('\\n')
+    first = True
+    for graf in memory_grafs:
+        if first:
+            first = False
+        else:
+            p.text("\n")
+            p.text("\n")
+        memory_words = graf.split(' ')
+        line_len = 0
+        line = ""
+        for word in memory_words:
+            if line_len + len(word) + 1 > CONFIGS['WIDTH']:
+                p.text(line)
+                p.text("\n")
+                line = word
+                line_len = len(word)
+            else:
+                line += " "
+                line += word
+                line_len += 1
+                line_len += len(word)
+        if len(line) > 0:
+            p.text(line)
 
+            
 def print_receipt(mall_db, index=None, barcode=None):
     if index is not None:
         mall = mall_db[index]
@@ -80,7 +108,7 @@ def print_receipt(mall_db, index=None, barcode=None):
     p.text("BIRTH:{:>36}\n".format(mall['birth']))
     p.text("DEATH:{:>36}\n".format(mall['death']))
     p.text("ABOUT THE MALL:\n")
-    p.text(mall['anchors'])
+    long_print(mall['anchors'])
     p.text("\n")
     p.text("="*CONFIGS['WIDTH'])
     p.text("\n")
@@ -90,7 +118,7 @@ def print_receipt(mall_db, index=None, barcode=None):
     p.set(text_type="normal")
     p.text("="*CONFIGS['WIDTH'])
     p.text("\n")
-    p.text(mall['memory'])
+    long_print(mall['memory'])
     p.text("\n")
     p.set(align="right")
     p.text("-{}\n".format(mall['memory_author']))
@@ -106,7 +134,7 @@ def print_receipt(mall_db, index=None, barcode=None):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    reader = csv.DictReader(open(CONFIGS['MALLS'],"r", encoding="latin-1"))
+    reader = csv.DictReader(open(CONFIGS['MALLS'],"r", encoding="utf-8-sig"))
     mdb = list()
     mall_mapping = dict()
     i = 0
@@ -114,6 +142,10 @@ if __name__ == '__main__':
         mdb.append(row)
         mall_mapping[row['code']] = i
         i += 1
+    if args.all:
+        for i in range(len(mdb)):
+            print_receipt(mdb, index=i)
+        exit()
     if args.barcode:
         while True:
             bc = read_barcode()
